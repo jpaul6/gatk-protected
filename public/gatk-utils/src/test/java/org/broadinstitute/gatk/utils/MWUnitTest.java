@@ -90,12 +90,12 @@ public class MWUnitTest extends BaseTest {
 
         Assert.assertEquals(MannWhitneyU.calculatePUniformApproximation(sizes.first,sizes.second,10L),0.4180519701814064,1e-14);
         Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.first,sizes.second,10L,false,pm).second,0.021756021756021756,1e-14);
-        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.first,sizes.second,10L,tieStructure,false).second,0.06214143703127617,1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.first,sizes.second,10L,tieStructure,false).second,0.07161745376233492,1e-14);
         logger.warn("Testing two-sided");
         Assert.assertEquals((double)mwu2.runTwoSidedTest().second,2*0.021756021756021756,1e-8);
 
         // tests using the hypothesis that set 1 dominates set 2 (U value = 30) -- empirical should be identical, normall approx close, uniform way off
-        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.second,sizes.first,30L,tieStructure,true).second,2.0*0.08216463976903321,1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.second,sizes.first,30L,tieStructure,true).second,2.0*0.07161745376233,1e-14);
         Assert.assertEquals(MannWhitneyU.calculatePUniformApproximation(sizes.second,sizes.first,30L),0.0023473625009559074,1e-14);
         Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.second,sizes.first,30L,false,pm).second,0.021756021756021756,1e-14); // note -- exactly same value as above
         Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.second,sizes.first,29L,false,cm).second,1.0-0.08547008547008,1e-14); // r does a correction, subtracting 1 from U
@@ -128,7 +128,7 @@ public class MWUnitTest extends BaseTest {
         //logger.warn(String.format("Possible sequences: %d", (long) Arithmetic.binomial(nums.first+nums.second,nums.first)));
         //logger.warn(String.format("Ratio: %.4e",MannWhitneyU.countSequences(nums.first,nums.second,u)/Arithmetic.binomial(nums.first+nums.second,nums.first)));
         Assert.assertEquals(MannWhitneyU.calculatePRecursivelyDoNotCheckValuesEvenThoughItIsSlow(nums.first, nums.second, (long) Math.floor(u)), 3.665689149560116E-4, 1e-14);
-        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(nums.first,nums.second,u,tieStructure3,false).second,0.0032240865760884696,1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(nums.first,nums.second,u,tieStructure3,false).second,0.0035431156506328665,1e-14);
         Assert.assertEquals(MannWhitneyU.calculatePUniformApproximation(nums.first,nums.second,u),0.0026195003025784036,1e-14);
 
         logger.warn("Ties");
@@ -143,8 +143,8 @@ public class MWUnitTest extends BaseTest {
         Map<Integer, Integer> tieStructure4 = MannWhitneyU.getTieStructure(mwu4.getObservations());
         Pair<Integer,Integer> nums4 = mwu4.getSetSizes();
 
-        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(nums4.first,nums4.second,uRes.first,tieStructure4,true).second,0.23868221241136967,1e-14);
-        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(nums4.first,nums4.second,uRes.first,null,true).second,0.2389590520605287,1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(nums4.first,nums4.second,uRes.first,tieStructure4,true).second,0.22563858559245098,1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(nums4.first,nums4.second,uRes.first,null,true).second,0.2314679393341259,1e-14);
         Assert.assertEquals(uRes.first, 157.5);
         Assert.assertEquals(uRes.second, MannWhitneyU.USet.SET2);
     }

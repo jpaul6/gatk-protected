@@ -86,13 +86,9 @@ public class MannWhitneyU {
 
         if (set == USet.SET1) {
             currValue.first += 1;
-        } else {
-            currValue.second += 1;
-        }
-
-        if ( set == USet.SET1 ) {
             ++sizeSet1;
         } else {
+            currValue.second += 1;
             ++sizeSet2;
         }
     }
@@ -218,15 +214,17 @@ public class MannWhitneyU {
     @Requires({"m > 0","n > 0"})
     @Ensures({"! Double.isNaN(result)", "! Double.isInfinite(result)"})
     private static double getZApprox(int n, int m, double u, Map<Integer, Integer> tieStructure) {
-        double mean = ( ((long)m)*n+1.0)/2;
-        double var = (((long) n)*m*(n+m+1.0))/12;
+        double mean = ( ((long)m)*n)/2.0;
+
+        double varAdjust = 0;
         if (tieStructure != null) {
-            double varAdjust = 0;
             for (Map.Entry<Integer, Integer> tie : tieStructure.entrySet()) {
                 varAdjust += tie.getValue() * (Math.pow(tie.getKey(), 3) - tie.getKey());
             }
-            var -= varAdjust / ((n + m) * (n + m - 1));
         }
+
+        double var = (n * m / 12.0) * (n + m + 1 - varAdjust / ((n + m) * (n + m - 1)));
+
         double z = ( u - mean )/Math.sqrt(var);
         return z;
     }
@@ -303,6 +301,13 @@ public class MannWhitneyU {
         return dominator == USet.SET1 ? mwuResult.first : mwuResult.second;
     }
 
+    /**
+     * Computes a mapping from the number of elements that are tied to the number of times that occurs in input
+     * observed data. For example, assuming the observed data is 1,1,2,2,2,3,3,4,5,6,6 the tie structure
+     * woudl return: 1 => 2 (4 and 5), 2 => 3 (1, 3, and 6), 3 => 1 (2)
+     * @param observed - the observed data points, tagged by each set
+     * @return the tie structure, as described above
+     */
     public static Map<Integer, Integer> getTieStructure(TreeMap<Number, Pair<Integer, Integer>> observed) {
         Map<Integer, Integer> tieStructure = new TreeMap<>();
         for (Pair<Integer, Integer> vals : observed.values()) {
