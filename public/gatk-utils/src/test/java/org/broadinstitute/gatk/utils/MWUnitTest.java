@@ -32,6 +32,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.testng.Assert;
 
+import java.util.Map;
+
 /**
  * Created by IntelliJ IDEA.
  * User: Ghost
@@ -59,8 +61,8 @@ public class MWUnitTest extends BaseTest {
         mwu.add(9,MannWhitneyU.USet.SET1);
         mwu.add(10,MannWhitneyU.USet.SET1);
         mwu.add(11,MannWhitneyU.USet.SET2);
-        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu.getObservations(), MannWhitneyU.USet.SET1),25L);
-        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu.getObservations(),MannWhitneyU.USet.SET2),11L);
+        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu.getObservations(), MannWhitneyU.USet.SET1),25D);
+        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu.getObservations(),MannWhitneyU.USet.SET2),11D);
 
         MannWhitneyU mwu2 = new MannWhitneyU();
         MannWhitneyU mwuNoDither = new MannWhitneyU(false);
@@ -78,21 +80,22 @@ public class MWUnitTest extends BaseTest {
         MannWhitneyU.ExactMode cm = MannWhitneyU.ExactMode.CUMULATIVE;
 
         // tests using the hypothesis that set 2 dominates set 1 (U value = 10)
-        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu2.getObservations(),MannWhitneyU.USet.SET1),10L);
-        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu2.getObservations(),MannWhitneyU.USet.SET2),30L);
-        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwuNoDither.getObservations(),MannWhitneyU.USet.SET1),10L);
-        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwuNoDither.getObservations(),MannWhitneyU.USet.SET2),30L);
+        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu2.getObservations(),MannWhitneyU.USet.SET1),10D);
+        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu2.getObservations(),MannWhitneyU.USet.SET2),30D);
+        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwuNoDither.getObservations(),MannWhitneyU.USet.SET1),10D);
+        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwuNoDither.getObservations(),MannWhitneyU.USet.SET2),30D);
 
         Pair<Integer,Integer> sizes = mwu2.getSetSizes();
+        Map<Integer, Integer> tieStructure = MannWhitneyU.getTieStructure(mwu2.getObservations());
 
         Assert.assertEquals(MannWhitneyU.calculatePUniformApproximation(sizes.first,sizes.second,10L),0.4180519701814064,1e-14);
         Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.first,sizes.second,10L,false,pm).second,0.021756021756021756,1e-14);
-        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.first,sizes.second,10L,false).second,0.06214143703127617,1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.first,sizes.second,10L,tieStructure,false).second,0.07161745376233492,1e-14);
         logger.warn("Testing two-sided");
         Assert.assertEquals((double)mwu2.runTwoSidedTest().second,2*0.021756021756021756,1e-8);
 
         // tests using the hypothesis that set 1 dominates set 2 (U value = 30) -- empirical should be identical, normall approx close, uniform way off
-        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.second,sizes.first,30L,true).second,2.0*0.08216463976903321,1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.second,sizes.first,30L,tieStructure,true).second,2.0*0.07161745376233,1e-14);
         Assert.assertEquals(MannWhitneyU.calculatePUniformApproximation(sizes.second,sizes.first,30L),0.0023473625009559074,1e-14);
         Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.second,sizes.first,30L,false,pm).second,0.021756021756021756,1e-14); // note -- exactly same value as above
         Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.second,sizes.first,29L,false,cm).second,1.0-0.08547008547008,1e-14); // r does a correction, subtracting 1 from U
@@ -116,16 +119,33 @@ public class MWUnitTest extends BaseTest {
         for ( int dp : new int[]{1,5,6,7,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34} ) {
             mwu3.add(dp,MannWhitneyU.USet.SET2);
         }
-        long u = MannWhitneyU.calculateOneSidedU(mwu3.getObservations(),MannWhitneyU.USet.SET1);
+        double u = MannWhitneyU.calculateOneSidedU(mwu3.getObservations(),MannWhitneyU.USet.SET1);
         //logger.warn(String.format("U is: %d",u));
         Pair<Integer,Integer> nums = mwu3.getSetSizes();
+        Map<Integer, Integer> tieStructure3 = MannWhitneyU.getTieStructure(mwu3.getObservations());
         //logger.warn(String.format("Corrected p is: %.4e",MannWhitneyU.calculatePRecursivelyDoNotCheckValuesEvenThoughItIsSlow(nums.first,nums.second,u)));
         //logger.warn(String.format("Counted sequences: %d",MannWhitneyU.countSequences(nums.first, nums.second, u)));
         //logger.warn(String.format("Possible sequences: %d", (long) Arithmetic.binomial(nums.first+nums.second,nums.first)));
         //logger.warn(String.format("Ratio: %.4e",MannWhitneyU.countSequences(nums.first,nums.second,u)/Arithmetic.binomial(nums.first+nums.second,nums.first)));
-        Assert.assertEquals(MannWhitneyU.calculatePRecursivelyDoNotCheckValuesEvenThoughItIsSlow(nums.first, nums.second, u), 3.665689149560116E-4, 1e-14);
-        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(nums.first,nums.second,u,false).second,0.0032240865760884696,1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePRecursivelyDoNotCheckValuesEvenThoughItIsSlow(nums.first, nums.second, (long) Math.floor(u)), 3.665689149560116E-4, 1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(nums.first,nums.second,u,tieStructure3,false).second,0.0035431156506328665,1e-14);
         Assert.assertEquals(MannWhitneyU.calculatePUniformApproximation(nums.first,nums.second,u),0.0026195003025784036,1e-14);
 
+        logger.warn("Ties");
+        MannWhitneyU mwu4 = new MannWhitneyU();
+        for ( int dp : new int[]{10,10,10,15,15,20,20,20,25,30,40,45,50,60} ) {
+            mwu4.add(dp,MannWhitneyU.USet.SET1);
+        }
+        for ( int dp : new int[]{10,15,20,20,20,25,25,25,30,30,30,30,45,45,45,45,45,45} ) {
+            mwu4.add(dp,MannWhitneyU.USet.SET2);
+        }
+        Pair<Double, MannWhitneyU.USet> uRes = MannWhitneyU.calculateTwoSidedU(mwu4.getObservations());
+        Map<Integer, Integer> tieStructure4 = MannWhitneyU.getTieStructure(mwu4.getObservations());
+        Pair<Integer,Integer> nums4 = mwu4.getSetSizes();
+
+        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(nums4.first,nums4.second,uRes.first,tieStructure4,true).second,0.22563858559245098,1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(nums4.first,nums4.second,uRes.first,null,true).second,0.2314679393341259,1e-14);
+        Assert.assertEquals(uRes.first, 157.5);
+        Assert.assertEquals(uRes.second, MannWhitneyU.USet.SET2);
     }
 }

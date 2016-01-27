@@ -36,8 +36,7 @@ import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.exceptions.GATKException;
 
 import java.io.Serializable;
-import java.util.Comparator;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -49,16 +48,13 @@ public class MannWhitneyU {
     private static NormalDistribution APACHE_NORMAL = new NormalDistributionImpl(0.0,1.0,1e-2);
     private static double LNSQRT2PI = Math.log(Math.sqrt(2.0*Math.PI));
 
-    private TreeSet<Pair<Number,USet>> observations;
+    private TreeMap<Number, Pair<Integer, Integer>> observations;
     private int sizeSet1;
     private int sizeSet2;
     private ExactMode exactMode;
 
     public MannWhitneyU(ExactMode mode, boolean dither) {
-        if ( dither )
-            observations = new TreeSet<Pair<Number,USet>>(new DitheringComparator());
-        else
-            observations = new TreeSet<Pair<Number,USet>>(new NumberedPairComparator());
+        observations = new TreeMap<>();
         sizeSet1 = 0;
         sizeSet2 = 0;
         exactMode = mode;
@@ -82,23 +78,30 @@ public class MannWhitneyU {
      * @param set: whether the observation comes from set 1 or set 2
      */
     public void add(Number n, USet set) {
-        observations.add(new Pair<Number,USet>(n,set));
-        if ( set == USet.SET1 ) {
+        Pair<Integer, Integer> currValue = observations.get(n);
+        if (currValue == null) {
+            currValue = new Pair<>(0, 0);
+            observations.put(n, currValue);
+        }
+
+        if (set == USet.SET1) {
+            currValue.first += 1;
             ++sizeSet1;
         } else {
+            currValue.second += 1;
             ++sizeSet2;
         }
     }
 
-    public Pair<Long,Long> getR1R2() {
-        long u1 = calculateOneSidedU(observations,MannWhitneyU.USet.SET1);
+    public Pair<Double, Double> getR1R2() {
+        double u1 = calculateOneSidedU(observations,MannWhitneyU.USet.SET1);
         long n1 = sizeSet1*(sizeSet1+1)/2;
-        long r1 = u1 + n1;
+        double r1 = u1 + n1;
         long n2 = sizeSet2*(sizeSet2+1)/2;
-        long u2 = n1*n2-u1;
-        long r2 = u2 + n2;
+        double u2 = n1*n2-u1;
+        double r2 = u2 + n2;
 
-        return new Pair<Long,Long>(r1,r2);
+        return new Pair<Double,Double>(r1,r2);
     }
 
     /**
@@ -110,7 +113,8 @@ public class MannWhitneyU {
     @Requires({"lessThanOther != null"})
     @Ensures({"validateObservations(observations) || Double.isNaN(result.getFirst())","result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
     public Pair<Double,Double> runOneSidedTest(USet lessThanOther) {
-        long u = calculateOneSidedU(observations, lessThanOther);
+        double u = calculateOneSidedU(observations, lessThanOther);
+        Map<Integer, Integer> tieStructure = getTieStructure(observations);
         int n = lessThanOther == USet.SET1 ? sizeSet1 : sizeSet2;
         int m = lessThanOther == USet.SET1 ? sizeSet2 : sizeSet1;
         if ( n == 0 || m == 0 ) {
@@ -121,7 +125,7 @@ public class MannWhitneyU {
         // the null hypothesis is that {N} is stochastically less than {M}, so U has counted
         // occurrences of {M}s before {N}s. We would expect that this should be less than (n*m+1)/2 under
         // the null hypothesis, so we want to integrate from K=0 to K=U for cumulative cases. Always.
-        return calculateP(n, m, u, false, exactMode);
+        return calculateP(n, m, u, false, tieStructure, exactMode);
     }
 
     /**
@@ -132,15 +136,16 @@ public class MannWhitneyU {
     @Ensures({"result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
     //@Requires({"validateObservations(observations)"})
     public Pair<Double,Double> runTwoSidedTest() {
-        Pair<Long,USet> uPair = calculateTwoSidedU(observations);
-        long u = uPair.first;
+        Pair<Double,USet> uPair = calculateTwoSidedU(observations);
+        double u = uPair.first;
+        Map<Integer, Integer> tieStructure = getTieStructure(observations);
         int n = uPair.second == USet.SET1 ? sizeSet1 : sizeSet2;
         int m = uPair.second == USet.SET1 ? sizeSet2 : sizeSet1;
         if ( n == 0 || m == 0 ) {
             // test is uninformative as one or both sets have no observations
             return new Pair<Double,Double>(Double.NaN,Double.NaN);
         }
-        return calculateP(n, m, u, true, exactMode);
+        return calculateP(n, m, u, true, tieStructure, exactMode);
     }
 
     /**
@@ -154,18 +159,18 @@ public class MannWhitneyU {
      */
     @Requires({"m > 0","n > 0"})
     @Ensures({"result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
-    protected static Pair<Double,Double> calculateP(int n, int m, long u, boolean twoSided, ExactMode exactMode) {
+    protected static Pair<Double,Double> calculateP(int n, int m, double u, boolean twoSided, Map<Integer, Integer> tieStructure, ExactMode exactMode) {
         Pair<Double,Double> zandP;
         if ( n > 8 && m > 8 ) {
             // large m and n - normal approx
-            zandP = calculatePNormalApproximation(n,m,u, twoSided);
+            zandP = calculatePNormalApproximation(n,m,u,tieStructure, twoSided);
         } else if ( n > 5 && m > 7 ) {
             // large m, small n - sum uniform approx
             // todo -- find the appropriate regimes where this approximation is actually better enough to merit slowness
             // pval = calculatePUniformApproximation(n,m,u);
-            zandP = calculatePNormalApproximation(n, m, u, twoSided);
+            zandP = calculatePNormalApproximation(n, m, u, tieStructure, twoSided);
         } else if ( n > 8 || m > 8 ) {
-            zandP = calculatePFromTable(n, m, u, twoSided);
+            zandP = calculatePFromTable(n, m, u, tieStructure, twoSided);
         } else {
             // small m and n - full approx
             zandP = calculatePRecursively(n,m,u,twoSided,exactMode);
@@ -174,10 +179,10 @@ public class MannWhitneyU {
         return zandP;
     }
 
-    public static Pair<Double,Double> calculatePFromTable(int n, int m, long u, boolean twoSided) {
+    public static Pair<Double,Double> calculatePFromTable(int n, int m, double u, Map<Integer, Integer> tieStructure, boolean twoSided) {
         // todo -- actually use a table for:
         // todo      - n large, m small
-        return calculatePNormalApproximation(n,m,u, twoSided);
+        return calculatePNormalApproximation(n,m,u, tieStructure, twoSided);
     }
 
     /**
@@ -190,8 +195,8 @@ public class MannWhitneyU {
      */
     @Requires({"m > 0","n > 0"})
     @Ensures({"result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
-    public static Pair<Double,Double> calculatePNormalApproximation(int n,int m,long u, boolean twoSided) {
-        double z = getZApprox(n,m,u);
+    public static Pair<Double,Double> calculatePNormalApproximation(int n,int m,double u, Map<Integer, Integer> tieStructure, boolean twoSided) {
+        double z = getZApprox(n,m,u,tieStructure);
         if ( twoSided ) {
             return new Pair<Double,Double>(z,2.0*(z < 0 ? STANDARD_NORMAL.cdf(z) : 1.0-STANDARD_NORMAL.cdf(z)));
         } else {
@@ -208,9 +213,18 @@ public class MannWhitneyU {
      */
     @Requires({"m > 0","n > 0"})
     @Ensures({"! Double.isNaN(result)", "! Double.isInfinite(result)"})
-    private static double getZApprox(int n, int m, long u) {
-        double mean = ( ((long)m)*n+1.0)/2;
-        double var = (((long) n)*m*(n+m+1.0))/12;
+    private static double getZApprox(int n, int m, double u, Map<Integer, Integer> tieStructure) {
+        double mean = ( ((long)m)*n)/2.0;
+
+        double varAdjust = 0;
+        if (tieStructure != null) {
+            for (Map.Entry<Integer, Integer> tie : tieStructure.entrySet()) {
+                varAdjust += tie.getValue() * (Math.pow(tie.getKey(), 3) - tie.getKey());
+            }
+        }
+
+        double var = (n * m / 12.0) * (n + m + 1 - varAdjust / ((n + m) * (n + m - 1)));
+
         double z = ( u - mean )/Math.sqrt(var);
         return z;
     }
@@ -225,11 +239,11 @@ public class MannWhitneyU {
      * todo -- this is currently not called due to not having a good characterization of where it is significantly more accurate than the
      * todo -- normal approxmation (e.g. enough to merit the runtime hit)
      */
-    public static double calculatePUniformApproximation(int n, int m, long u) {
-        long R = u + (n*(n+1))/2;
+    public static double calculatePUniformApproximation(int n, int m, double u) {
+        double R = u + (n*(n+1))/2;
         double a = Math.sqrt(m*(n+m+1));
         double b = (n/2.0)*(1-Math.sqrt((n+m+1)/m));
-        double z = b + ((double)R)/a;
+        double z = b + R/a;
         if ( z < 0 ) { return 1.0; }
         else if ( z > n ) { return 0.0; }
         else {
@@ -266,32 +280,11 @@ public class MannWhitneyU {
      */
     @Requires({"observed != null", "observed.size() > 0"})
     @Ensures({"result != null","result.first > 0"})
-    public static Pair<Long,USet> calculateTwoSidedU(TreeSet<Pair<Number,USet>> observed) {
-        int set1SeenSoFar = 0;
-        int set2SeenSoFar = 0;
-        long uSet1DomSet2 = 0;
-        long uSet2DomSet1 = 0;
-        USet previous = null;
-        for ( Pair<Number,USet> dataPoint : observed ) {
-
-            if ( dataPoint.second == USet.SET1 ) {
-                ++set1SeenSoFar;
-            } else {
-                ++set2SeenSoFar;
-            }
-
-            if ( previous != null ) {
-                if ( dataPoint.second == USet.SET1 ) {
-                    uSet2DomSet1 += set2SeenSoFar;
-                } else {
-                    uSet1DomSet2 += set1SeenSoFar;
-                }
-            }
-
-            previous = dataPoint.second;
-        }
-
-        return uSet1DomSet2 < uSet2DomSet1 ? new Pair<Long,USet>(uSet1DomSet2,USet.SET1) : new Pair<Long,USet>(uSet2DomSet1,USet.SET2);
+    public static Pair<Double,USet> calculateTwoSidedU(TreeMap<Number, Pair<Integer, Integer>> observed) {
+        Pair<Double,Double> mwuResult = calculateMWU(observed);
+        return mwuResult.second < mwuResult.first?
+                new Pair<Double,USet>(mwuResult.first,USet.SET1) :
+                new Pair<Double,USet>(mwuResult.second,USet.SET2);
     }
 
     /**
@@ -303,19 +296,61 @@ public class MannWhitneyU {
      */
     @Requires({"observed != null","dominator != null","observed.size() > 0"})
     @Ensures({"result >= 0"})
-    public static long calculateOneSidedU(TreeSet<Pair<Number,USet>> observed,USet dominator) {
-        long otherBeforeDominator = 0l;
-        int otherSeenSoFar = 0;
-        for ( Pair<Number,USet> dataPoint : observed ) {
-            if ( dataPoint.second != dominator ) {
-                ++otherSeenSoFar;
-            } else {
-                otherBeforeDominator += otherSeenSoFar;
+    public static double calculateOneSidedU(TreeMap<Number, Pair<Integer, Integer>> observed, USet dominator) {
+        Pair<Double,Double> mwuResult = calculateMWU(observed);
+        return dominator == USet.SET1 ? mwuResult.first : mwuResult.second;
+    }
+
+    /**
+     * Computes a mapping from the number of elements that are tied to the number of times that occurs in input
+     * observed data. For example, assuming the observed data is 1,1,2,2,2,3,3,4,5,6,6 the tie structure
+     * woudl return: 1 => 2 (4 and 5), 2 => 3 (1, 3, and 6), 3 => 1 (2)
+     * @param observed - the observed data points, tagged by each set
+     * @return the tie structure, as described above
+     */
+    public static Map<Integer, Integer> getTieStructure(TreeMap<Number, Pair<Integer, Integer>> observed) {
+        Map<Integer, Integer> tieStructure = new TreeMap<>();
+        for (Pair<Integer, Integer> vals : observed.values()) {
+            int useKey = vals.first + vals.second;
+
+            Integer oldVal = tieStructure.get(useKey);
+            if (oldVal == null) {
+                oldVal = 0;
             }
+
+            oldVal += 1;
+            tieStructure.put(useKey, oldVal);
         }
 
-        return otherBeforeDominator;
+        return tieStructure;
     }
+
+    public static Pair<Double, Double> calculateMWU(TreeMap<Number, Pair<Integer, Integer>> observed) {
+        int currRank = 0;
+
+        int numDomObs1 = 0;
+        double uDom1 = 0;
+        int numDomObs2 = 0;
+        double uDom2 = 0;
+
+        for (Pair<Integer, Integer> numObsAtVal : observed.values()) {
+            int totalObsAtVal = numObsAtVal.first + numObsAtVal.second;
+            double valRank = currRank + (totalObsAtVal + 1) / 2.0;
+
+            numDomObs1 += numObsAtVal.first;
+            uDom1 += valRank * numObsAtVal.first;
+            numDomObs2 += numObsAtVal.second;
+            uDom2 += valRank * numObsAtVal.second;
+
+            currRank += numObsAtVal.first + numObsAtVal.second;
+        }
+
+        uDom1 = uDom1 - numDomObs1 * (numDomObs1 + 1) / 2.0;
+        uDom2 = uDom2 - numDomObs2 * (numDomObs2 + 1) / 2.0;
+
+        return new Pair<Double, Double>(uDom1, uDom2);
+    }
+
 
     /**
      * The Mann-Whitney U statistic follows a recursive equation (that enumerates the proportion of possible
@@ -330,9 +365,10 @@ public class MannWhitneyU {
      */
     @Requires({"m > 0","n > 0","u >= 0"})
     @Ensures({"result != null","! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
-    public static Pair<Double,Double> calculatePRecursively(int n, int m, long u, boolean twoSided, ExactMode mode) {
+    public static Pair<Double,Double> calculatePRecursively(int n, int m, double u, boolean twoSided, ExactMode mode) {
         if ( m > 8 && n > 5 ) { throw new GATKException(String.format("Please use the appropriate (normal or sum of uniform) approximation. Values n: %d, m: %d",n,m)); }
-        double p = mode == ExactMode.POINT ? cpr(n,m,u) : cumulativeCPR(n,m,u);
+        // N.B. We have found that simply using the floor along with the usual recursion (not adjusted for ties) produces entirely reasonable results in practice
+        double p = mode == ExactMode.POINT ? cpr(n,m, (long) Math.floor(u)) : cumulativeCPR(n,m, (long) Math.floor(u));
         //p *= twoSided ? 2.0 : 1.0;
         double z;
         try {
@@ -414,7 +450,7 @@ public class MannWhitneyU {
         // the null hypothesis, so we want to integrate from K=0 to K=U for cumulative cases. Always.
         double p = 0.0;
         // optimization using symmetry, use the least amount of sums possible
-        long uSym = ( u <= n*m/2 ) ? u : ((long)n)*m-u;
+        double uSym = ( u <= n*m/2 ) ? u : ((long)n)*m-u;
         for ( long uu = 0; uu < uSym; uu++ ) {
             p += cpr(n,m,uu);
         }
@@ -426,7 +462,7 @@ public class MannWhitneyU {
      * hook into the data tree, for testing purposes only
      * @return  observations
      */
-    protected TreeSet<Pair<Number,USet>> getObservations() {
+    protected TreeMap<Number, Pair<Integer, Integer>> getObservations() {
         return observations;
     }
 
@@ -443,20 +479,20 @@ public class MannWhitneyU {
      * @param tree - the collection of labeled observations
      * @return true iff the tree set is valid (no INFs or NaNs, at least one data point in each set)
      */
-    protected static boolean validateObservations(TreeSet<Pair<Number,USet>> tree) {
+    protected static boolean validateObservations(TreeMap<Number, Pair<Integer, Integer>> tree) {
         boolean seen1 = false;
         boolean seen2 = false;
         boolean seenInvalid = false;
-        for ( Pair<Number,USet> p : tree) {
-            if ( ! seen1 && p.getSecond() == USet.SET1 ) {
+        for ( Map.Entry<Number, Pair<Integer, Integer>> p : tree.entrySet()) {
+            if ( ! seen1 && p.getValue().first > 0 ) {
                 seen1 = true;
             }
 
-            if ( ! seen2 && p.getSecond() == USet.SET2 ) {
+            if ( ! seen2 && p.getValue().second > 0 ) {
                 seen2 = true;
             }
 
-            if ( Double.isNaN(p.getFirst().doubleValue()) || Double.isInfinite(p.getFirst().doubleValue())) {
+            if ( Double.isNaN(p.getKey().doubleValue()) || Double.isInfinite(p.getKey().doubleValue())) {
                 seenInvalid = true;
             }
 
@@ -465,43 +501,6 @@ public class MannWhitneyU {
             return ! seenInvalid && seen1 && seen2;
     }
 
-    /**
-     * A comparator class which uses dithering on tie-breaking to ensure that the internal treeset drops no values
-     * and to ensure that rank ties are broken at random.
-     */
-    private static class DitheringComparator implements Comparator<Pair<Number,USet>>, Serializable {
-
-        public DitheringComparator() {}
-
-        @Override
-        public boolean equals(Object other) { return false; }
-
-        @Override
-        public int compare(Pair<Number,USet> left, Pair<Number,USet> right) {
-            double comp = Double.compare(left.first.doubleValue(),right.first.doubleValue());
-            if ( comp > 0 ) { return 1; }
-            if ( comp < 0 ) { return -1; }
-            return Utils.getRandomGenerator().nextBoolean() ? -1 : 1;
-        }
-    }
-
-    /**
-     * A comparator that reaches into the pair and compares numbers without tie-braking.
-     */
-    private static class NumberedPairComparator implements Comparator<Pair<Number,USet>>, Serializable {
-
-        public NumberedPairComparator() {}
-
-        @Override
-        public boolean equals(Object other) { return false; }
-
-        @Override
-        public int compare(Pair<Number,USet> left, Pair<Number,USet> right ) {
-            return Double.compare(left.first.doubleValue(),right.first.doubleValue());
-        }
-    }
-
     public enum USet { SET1, SET2 }
     public enum ExactMode { POINT, CUMULATIVE }
-
 }
