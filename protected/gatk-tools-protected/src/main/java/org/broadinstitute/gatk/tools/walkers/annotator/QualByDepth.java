@@ -124,9 +124,6 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
         //       Penalize the QD calculation for UG indels to compensate for this
         double QD = -10.0 * vc.getLog10PError() / ((double)standardDepth * indelNormalizationFactor(altAlleleLength, walker instanceof UnifiedGenotyper));
 
-        // Hack: see note in the fixTooHighQD method below
-        QD = fixTooHighQD(QD);
-
         final Map<String, Object> map = new HashMap<>();
         map.put(getKeyNames().get(0), String.format("%.2f", QD));
         return map;
@@ -186,27 +183,6 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
     private double indelNormalizationFactor(final double altAlleleLength, final boolean increaseNormalizationAsLengthIncreases) {
         return ( increaseNormalizationAsLengthIncreases ? Math.max(altAlleleLength / 3.0, 1.0) : 1.0);
     }
-
-    /**
-     * The haplotype caller generates very high quality scores when multiple events are on the
-     * same haplotype.  This causes some very good variants to have unusually high QD values,
-     * and VQSR will filter these out.  This code looks at the QD value, and if it is above
-     * threshold we map it down to the mean high QD value, with some jittering
-     *
-     * @param QD the raw QD score
-     * @return a QD value
-     */
-    protected static double fixTooHighQD(final double QD) {
-        if ( QD < MAX_QD_BEFORE_FIXING ) {
-            return QD;
-        } else {
-            return IDEAL_HIGH_QD + Utils.getRandomGenerator().nextGaussian() * JITTER_SIGMA;
-        }
-    }
-
-    protected final static double MAX_QD_BEFORE_FIXING = 35;
-    protected final static double IDEAL_HIGH_QD = 30;
-    protected final static double JITTER_SIGMA = 3;
 
     @Override
     public List<String> getKeyNames() { return Arrays.asList(GATKVCFConstants.QUAL_BY_DEPTH_KEY); }

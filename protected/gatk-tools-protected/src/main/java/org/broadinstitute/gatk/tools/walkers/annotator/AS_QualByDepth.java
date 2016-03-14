@@ -187,8 +187,6 @@ public class AS_QualByDepth extends InfoFieldAnnotation implements ReducibleAnno
         double refDepth = (double)standardDepth.get(0);
         for (int i = 0; i < alleleQualList.size(); i++) {
             double AS_QD = -10.0 * alleleQualList.get(i) / ((double)standardDepth.get(i+1) + refDepth); //+1 to skip the reference field of the AD, add ref counts to each to match biallelic case
-            // Hack: see note in the fixTooHighQD method below
-            AS_QD = QualByDepth.fixTooHighQD(AS_QD);
             QDlist.add(AS_QD);
         }
 
