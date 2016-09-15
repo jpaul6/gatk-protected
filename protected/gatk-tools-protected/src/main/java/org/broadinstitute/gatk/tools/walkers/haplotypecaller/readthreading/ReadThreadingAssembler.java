@@ -207,6 +207,12 @@ public class ReadThreadingAssembler extends LocalAssemblyEngine {
             rtgraph.recoverDanglingHeads(pruneFactor, minDanglingBranchLength);
         }
 
+        // Check if we have a reference cycle and abort calling if so (previously we crashed!)
+        if ( rtgraph.getReferenceSourceVertex() == null || rtgraph.getReferenceSinkVertex() == null ) {
+            if ( debug ) logger.info("Could not identify reference source/sink - likely cycle in the reference sequence of this active region");
+            return null;
+        }
+
         // remove all heading and trailing paths
         if ( removePathsNotConnectedToRef ) rtgraph.removePathsNotConnectedToRef();
 
