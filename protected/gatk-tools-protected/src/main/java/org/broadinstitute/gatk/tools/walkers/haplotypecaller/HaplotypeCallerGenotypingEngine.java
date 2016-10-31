@@ -325,12 +325,12 @@ public class HaplotypeCallerGenotypingEngine extends GenotypingEngine<AssemblyBa
         final GenotypingLikelihoods<Allele> genotypeLikelihoods = genotypingModel.calculateLikelihoods(readAlleleLikelihoods, new GenotypingData<>(ploidyModel,readAlleleLikelihoods));
         final Set<Allele> allelesToDrop = excessAlternativeAlleles(genotypeLikelihoods, configuration.genotypeArgs.MAX_ALTERNATE_ALLELES);
         final String allelesToDropString;
-        if (allelesToDrop.size() < MAX_DROPPED_ALTERNATIVE_ALLELES_TO_LOG) {
+        if (allelesToDrop.size() <= MAX_DROPPED_ALTERNATIVE_ALLELES_TO_LOG) {
             allelesToDropString = StringUtil.join(", ", allelesToDrop);
         } else {
             final Iterator<Allele> it = allelesToDrop.iterator();
             final StringBuilder builder = new StringBuilder();
-            for (int i = 0; i < MAX_DROPPED_ALTERNATIVE_ALLELES_TO_LOG - 1; i++) {
+            for (int i = 0; i < MAX_DROPPED_ALTERNATIVE_ALLELES_TO_LOG; i++) {
                 builder.append(it.next().toString()).append(", ");
             }
             allelesToDropString = builder.append(it.next().toString()).append(" and ").append(allelesToDrop.size() - 20).append(" more").toString();
