@@ -151,6 +151,8 @@ public abstract class Walker<MapType, ReduceType> {
 
     public void initialize() { }
 
+    public void loadPresetActiveRegions() { }
+
     /**
      * A function for overloading in subclasses providing a mechanism to abort early from a walker.
      *

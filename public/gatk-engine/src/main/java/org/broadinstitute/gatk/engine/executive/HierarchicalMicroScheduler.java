@@ -206,6 +206,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
      */
     protected void initializeWalker(Walker walker) {
         outputTracker.bypassThreadLocalStorage(true);
+        logger.info("Initializing walker in HierarchicalMicroScheduler.initializeWalker");
         try {
             walker.initialize();
         }

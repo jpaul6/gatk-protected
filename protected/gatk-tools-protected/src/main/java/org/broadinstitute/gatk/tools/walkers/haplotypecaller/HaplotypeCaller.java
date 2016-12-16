@@ -569,6 +569,8 @@ public class HaplotypeCaller extends ActiveRegionWalker<List<VariantContext>, In
     //---------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
+        logger.info("Initializing HaplotypeCaller");
+
         super.initialize();
 
         if (HCAC.genotypeArgs.samplePloidy != HomoSapiensConstants.DEFAULT_PLOIDY && !doNotRunPhysicalPhasing) {

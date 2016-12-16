@@ -291,8 +291,11 @@ public class GenomeAnalysisEngine {
         // initialize sampleDB
         initializeSampleDB();
 
+        // load active regions in the walker *before* we create the microscheduler and initialize the traverser
+        walker.loadPresetActiveRegions();
+
         // our microscheduler, which is in charge of running everything
-        MicroScheduler microScheduler = createMicroscheduler();
+        MicroScheduler microScheduler = createMicroscheduler(); // warning, this initializes the traverser
         threadEfficiencyMonitor = microScheduler.getThreadEfficiencyMonitor();
 
         // create temp directories as necessary

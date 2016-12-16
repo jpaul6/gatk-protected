@@ -144,6 +144,9 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
 
     @Override
     public void initialize(GenomeAnalysisEngine engine, Walker walker, ProgressMeter progressMeter) {
+        logger.info("Initializing TraverseActiveRegions");
+
+
         super.initialize(engine, walker, progressMeter);
 
         this.walker = (ActiveRegionWalker<M,T>)walker;
@@ -157,6 +160,7 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
         this.maxRegionSize = this.walker.activeRegionMaxSize == null ? annotation.maxRegion() : this.walker.activeRegionMaxSize;
         this.minRegionSize = annotation.minRegion();
         final double bandPassSigma = this.walker.bandPassSigma == null ? annotation.bandPassSigma() : this.walker.bandPassSigma;
+        logger.info("Querying preset regions from walker (needs to be initialized first!) - " + this.walker.hasPresetActiveRegions());
         walkerHasPresetRegions = this.walker.hasPresetActiveRegions();
 
         activityProfile = new BandPassActivityProfile(engine.getGenomeLocParser(), engine.getIntervals(), this.walker.maxProbPropagationDistance, this.walker.activeProbThreshold,
@@ -187,6 +191,7 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
 
         final GenomeLoc contigSpan = engine.getGenomeLocParser().createOverEntireContig(contig);
         for ( final GenomeLoc loc : this.walker.getPresetActiveRegions().getOverlapping(contigSpan) ) {
+            logger.info("Adding preset region to workqueue: " + loc);
             workQueue.add(new ActiveRegion(loc, null, true, engine.getGenomeLocParser(), getActiveRegionExtension()));
         }
     }
@@ -705,7 +710,8 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
     private class TraverseActiveRegionMap implements NSMapFunction<MapData, M> {
         @Override
         public M apply(final MapData mapData) {
-            if ( DEBUG ) logger.info("Executing walker.map for " + mapData.activeRegion + " in thread " + Thread.currentThread().getName());
+            //if ( DEBUG )
+            logger.info("Executing walker.map for " + mapData.activeRegion + " in thread " + Thread.currentThread().getName());
             return walker.map(mapData.activeRegion, mapData.tracker);
         }
     }
