@@ -711,7 +711,7 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
         @Override
         public M apply(final MapData mapData) {
             //if ( DEBUG )
-            logger.info("Executing walker.map for " + mapData.activeRegion + " in thread " + Thread.currentThread().getName());
+            //logger.info("Executing walker.map for " + mapData.activeRegion + " in thread " + Thread.currentThread().getName());
             return walker.map(mapData.activeRegion, mapData.tracker);
         }
     }
