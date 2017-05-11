@@ -191,7 +191,7 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
 
         final GenomeLoc contigSpan = engine.getGenomeLocParser().createOverEntireContig(contig);
         for ( final GenomeLoc loc : this.walker.getPresetActiveRegions().getOverlapping(contigSpan) ) {
-            logger.info("Adding preset region to workqueue: " + loc);
+            // logger.info("Adding preset region to workqueue: " + loc);
             workQueue.add(new ActiveRegion(loc, null, true, engine.getGenomeLocParser(), getActiveRegionExtension()));
         }
     }
