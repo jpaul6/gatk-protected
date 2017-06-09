@@ -104,7 +104,8 @@ public class TAROrderedReadCache {
 
             // No more room in the undownsampledCache? Time to start downsampling
             if ( undownsampledCache.size() > maxCapacity ) {
-                activateDownsampler();
+                throw new RuntimeException("Attempted to downsample reads - check that input alignment file matches active regions");
+                // activateDownsampler();
             }
         }
     }
