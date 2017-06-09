@@ -141,7 +141,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
             // logger.info("merged active regions: " + allIntervals);
         }
 
-        presetActiveRegions = IntervalUtils.sortAndMergeIntervals(this.getToolkit().getGenomeLocParser(), allIntervals, IntervalMergingRule.ALL);
+        presetActiveRegions = IntervalUtils.sortAndMergeIntervals(this.getToolkit().getGenomeLocParser(), allIntervals, IntervalMergingRule.OVERLAPPING_ONLY);
 
         // logger.info("preset active regions: " + presetActiveRegions);
     }
