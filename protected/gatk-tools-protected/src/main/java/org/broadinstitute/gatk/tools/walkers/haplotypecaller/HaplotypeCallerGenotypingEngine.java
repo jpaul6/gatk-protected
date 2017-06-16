@@ -219,8 +219,16 @@ public class HaplotypeCallerGenotypingEngine extends GenotypingEngine<AssemblyBa
         final List<Allele> noCallAlleles = GATKVariantContextUtils.noCallAlleles(ploidy);
 
         for( final int loc : startPosKeySet ) {
-            if( loc >= activeRegionWindow.getStart() && loc <= activeRegionWindow.getStop() ) { // genotyping an event inside this active region
-                final List<VariantContext> eventsAtThisLoc = getVCsAtThisLocation(haplotypes, loc, activeAllelesToGenotype);
+                // We're looping over all locations, even those outside the active region, looking for events that overlap the active region.
+
+                final List<VariantContext> eventsAtThisLoc = new ArrayList<>();
+
+                // Limit the event list to only those that overlap the active region
+                for ( final VariantContext event : getVCsAtThisLocation(haplotypes, loc, activeAllelesToGenotype)) {
+                    if ( genomeLocParser.createGenomeLoc(event).overlapsP(activeRegionWindow) ) {
+                        eventsAtThisLoc.add(event);
+                    }
+                }
 
                 if( eventsAtThisLoc.isEmpty() ) { continue; }
 
@@ -274,7 +282,6 @@ public class HaplotypeCallerGenotypingEngine extends GenotypingEngine<AssemblyBa
                 if ( call != null ) {
                     final VariantContext annotatedCall = annotateCall(readLikelihoods, perSampleFilteredReadList, ref, refLoc, genomeLocParser, tracker, emitReferenceConfidence, calledHaplotypes, mergedVC, alleleMapper, readAlleleLikelihoods, someAllelesWereDropped, call);
                     returnCalls.add( annotatedCall );
-                }
             }
         }
 
