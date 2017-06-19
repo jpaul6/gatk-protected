@@ -224,7 +224,7 @@ public class ReadThreadingAssembler extends LocalAssemblyEngine {
         // if the unit tests don't want us to cleanup the graph, just return the raw sequence graph
         if ( justReturnRawGraph ) return new AssemblyResult(AssemblyResult.Status.ASSEMBLED_SOME_VARIATION, initialSeqGraph);
 
-        if ( debug ) logger.info("Using kmer size of " + rtgraph.getKmerSize() + " in read threading assembler");
+        if (debug) logger.info("Using kmer size of " + rtgraph.getKmerSize() + " in read threading assembler");
         printDebugGraphTransform(initialSeqGraph, new File( "" + refHaplotype.getGenomeLocation() + "-sequenceGraph." + kmerSize + ".0.2.initial_seqgraph.dot"));
         initialSeqGraph.cleanNonRefPaths(); // TODO -- I don't this is possible by construction
 

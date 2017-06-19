@@ -675,7 +675,6 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
 
                 if ( ! walker.wantsNonPrimaryReads() ) {
                     killed = true;
-                    killed = true;
                 }
             } else if( walker.wantsExtendedReads() && activeRegion.getExtendedLoc().overlapsP( readLoc )) {
                 activeRegion.add( read );

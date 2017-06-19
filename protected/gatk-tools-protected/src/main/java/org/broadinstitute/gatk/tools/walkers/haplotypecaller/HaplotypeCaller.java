@@ -871,8 +871,8 @@ public class HaplotypeCaller extends ActiveRegionWalker<List<VariantContext>, In
         if( !originalActiveRegion.isActive() )
             // Not active so nothing to do!
             return referenceModelForNoVariation(originalActiveRegion, true);
-        final List<VariantContext> givenAlleles = new ArrayList<>();
 
+        final List<VariantContext> givenAlleles = new ArrayList<>();
         if( HCAC.genotypingOutputMode == GenotypingOutputMode.GENOTYPE_GIVEN_ALLELES ) {
             for ( final VariantContext vc : metaDataTracker.getValues(HCAC.alleles) ) {
                 if ( vc.isNotFiltered() ) {
