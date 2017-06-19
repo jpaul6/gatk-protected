@@ -183,13 +183,13 @@ public class ReadThreadingAssembler extends LocalAssemblyEngine {
 
         // sanity check: make sure there are no cycles in the graph
         if ( rtgraph.hasCycles() ) {
-            logger.info("Not using kmer size of " + kmerSize + " in read threading assembler because it contains a cycle");
+            if ( debug ) logger.info("Not using kmer size of " + kmerSize + " in read threading assembler because it contains a cycle");
             return null;
         }
 
         // sanity check: make sure the graph had enough complexity with the given kmer
         if ( ! allowLowComplexityGraphs && rtgraph.isLowComplexity() ) {
-            logger.info("Not using kmer size of " + kmerSize + " in read threading assembler because it does not produce a graph with enough complexity");
+            if ( debug ) logger.info("Not using kmer size of " + kmerSize + " in read threading assembler because it does not produce a graph with enough complexity");
             return null;
         }
 
@@ -209,7 +209,7 @@ public class ReadThreadingAssembler extends LocalAssemblyEngine {
 
         // Check if we have a reference cycle and abort calling if so (previously we crashed!)
         if ( rtgraph.getReferenceSourceVertex() == null || rtgraph.getReferenceSinkVertex() == null ) {
-            logger.info("Could not identify reference source/sink - likely cycle in the reference sequence of this active region");
+            if ( debug ) logger.info("Could not identify reference source/sink - likely cycle in the reference sequence of this active region");
             return null;
         }
 
@@ -224,7 +224,7 @@ public class ReadThreadingAssembler extends LocalAssemblyEngine {
         // if the unit tests don't want us to cleanup the graph, just return the raw sequence graph
         if ( justReturnRawGraph ) return new AssemblyResult(AssemblyResult.Status.ASSEMBLED_SOME_VARIATION, initialSeqGraph);
 
-        logger.info("Using kmer size of " + rtgraph.getKmerSize() + " in read threading assembler");
+        if ( debug ) logger.info("Using kmer size of " + rtgraph.getKmerSize() + " in read threading assembler");
         printDebugGraphTransform(initialSeqGraph, new File( "" + refHaplotype.getGenomeLocation() + "-sequenceGraph." + kmerSize + ".0.2.initial_seqgraph.dot"));
         initialSeqGraph.cleanNonRefPaths(); // TODO -- I don't this is possible by construction
 

@@ -130,20 +130,15 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
         for ( IntervalBinding intervalBinding : activeRegionBindings ) {
             List<GenomeLoc> intervals = intervalBinding.getIntervals(this.getToolkit().getGenomeLocParser());
 
-            // logger.info("input active regions: " + intervals);
-
             if ( intervals.isEmpty() ) {
                 logger.warn("The interval file " + intervalBinding.getSource() + " contains no intervals that could be parsed.");
             }
 
             allIntervals = IntervalUtils.mergeListsBySetOperator(intervals, allIntervals, IntervalSetRule.UNION);
-
-            // logger.info("merged active regions: " + allIntervals);
         }
 
         presetActiveRegions = IntervalUtils.sortAndMergeIntervals(this.getToolkit().getGenomeLocParser(), allIntervals, IntervalMergingRule.OVERLAPPING_ONLY);
 
-        // logger.info("preset active regions: " + presetActiveRegions);
     }
 
     /**

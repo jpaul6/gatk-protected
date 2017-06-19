@@ -665,7 +665,7 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
                                                   final ActiveRegionWalker<M, T> walker,
                                                   final IntervalReferenceOrderedView referenceOrderedDataView) {
         final List<GATKSAMRecord> stillLive = new LinkedList<>();
-        logger.info("# of reads input into the processing: " + myReads.size());
+        if ( DEBUG ) logger.info("# of reads input into the processing: " + myReads.size());
         for ( final GATKSAMRecord read : myReads.popCurrentReads() ) {
             boolean killed = false;
             final GenomeLoc readLoc = this.engine.getGenomeLocParser().createGenomeLoc( read );
@@ -690,10 +690,10 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
             if ( ! killed ) stillLive.add(read);
         }
         myReads.addAll(stillLive);
-        logger.info("# of reads still alive after processing: " + stillLive.size());
-        logger.info("# of reads available after processing: " + myReads.size());
+        if ( DEBUG ) logger.info("# of reads still alive after processing: " + stillLive.size());
+        if ( DEBUG ) logger.info("# of reads available after processing: " + myReads.size());
 
-        //if ( LOG_READ_CARRYING )
+        if ( LOG_READ_CARRYING )
             logger.info(String.format("Processing region %20s span=%3d active?=%5b with %4d reads.  Overall max reads carried is %s",
                     activeRegion.getLocation(), activeRegion.getLocation().size(), activeRegion.isActive(), activeRegion.size(), maxReadsInMemory));
 
@@ -710,8 +710,7 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
     private class TraverseActiveRegionMap implements NSMapFunction<MapData, M> {
         @Override
         public M apply(final MapData mapData) {
-            if ( DEBUG )
-            logger.info("Executing walker.map for " + mapData.activeRegion + " in thread " + Thread.currentThread().getName());
+            if ( DEBUG ) logger.info("Executing walker.map for " + mapData.activeRegion + " in thread " + Thread.currentThread().getName());
             return walker.map(mapData.activeRegion, mapData.tracker);
         }
     }

@@ -864,12 +864,15 @@ public class HaplotypeCaller extends ActiveRegionWalker<List<VariantContext>, In
         if ( justDetermineActiveRegions )
             // we're benchmarking ART and/or the active region determination code in the HC, just leave without doing any work
             return NO_CALLS;
+
         if (sampleNameToUse != null)
             removeReadsFromAllSamplesExcept(sampleNameToUse, originalActiveRegion);
+
         if( !originalActiveRegion.isActive() )
             // Not active so nothing to do!
             return referenceModelForNoVariation(originalActiveRegion, true);
         final List<VariantContext> givenAlleles = new ArrayList<>();
+
         if( HCAC.genotypingOutputMode == GenotypingOutputMode.GENOTYPE_GIVEN_ALLELES ) {
             for ( final VariantContext vc : metaDataTracker.getValues(HCAC.alleles) ) {
                 if ( vc.isNotFiltered() ) {
@@ -880,11 +883,9 @@ public class HaplotypeCaller extends ActiveRegionWalker<List<VariantContext>, In
             if ( givenAlleles.isEmpty() ) { return referenceModelForNoVariation(originalActiveRegion, true); }
         } else {
             // No reads here so nothing to do!
-            if( originalActiveRegion.size() == 0 ) {
-                logger.info("No reads found in active region!");
-                return referenceModelForNoVariation(originalActiveRegion, true);
-            }
+            if( originalActiveRegion.size() == 0 ) { return referenceModelForNoVariation(originalActiveRegion, true); }
         }
+
         // run the local assembler, getting back a collection of information on how we should proceed
         final AssemblyResultSet untrimmedAssemblyResult = assembleReads(originalActiveRegion, givenAlleles);
 
